@@ -1,0 +1,95 @@
+8.  脚本配置
+除了通过程序实现对log环境的配置之外，log4cplus通过PropertyConfigurator类实现了基于脚本配置的功能。通过脚本可以完成对logger、appender和layout的配置，因此可以解决怎样输出，输出到哪里的问题。
+
+下面将简单介绍一下脚本的语法规则，包括基本配置语法和高级配置语法。
+
+8.1.基本配置
+基本配置语法主要针对包括rootLogger和non-root logger。
+
+8.1.1.根Logger的配置
+语法：log4cplus.rootLogger=[LogLevel], appenderName, appenderName, ...
+8.1.2.非根Logger的配置
+语法：log4cplus.logger.logger_name=[LogLevel|INHERITED], appenderName, appenderName, ...
+说明：INHERITED表示继承父Logger的日志级别。
+
+8.2.高级配置
+
+8.2.1.Appender配置
+语法：
+log4cplus.appender.appenderName=fully.qualified.name.of.appender.class
+fully.qualified.name.of.appeneder.class可用值：
+log4cplus::ConsoleAppender终端输出
+log4cplus::FileAppender一般文件输出
+log4cplus::RollingFileAppender日志大小输出
+log4cplus::DailyRollingFileAppender日期输出
+log4cplus::SocketAppender网络端口输出
+文件通用选项：
+选项	作用
+ImmediateFlush是否立即刷新（默认为true）
+log4cplus.appender.ALL_MSGS.ImmediateFlush=true
+File使用的文件名
+log4cplus.appender.ALL_MSGS.File=all_msgs.log
+Append是否追加到之前的文件
+log4cplus.appender.ALL_MSGS.Append=true
+ReopenDelay先将日志缓存起来，等指定时间之后再往文件中插入,减少文件的保存次数
+log4cplus.appender.ALL_MSGS.ReopenDelay=10【单位为秒】
+UseLockFile是否使用加锁的方式去写文件，默认是false
+log4cplus.appender.ALL_MSGS.UseLockFile=true
+LockFile使用的加锁文件名
+log4cplus.appender.ALL_MSGS.LockFile=fuck_are_you.lock[文件名没有具体要求]
+Locale使用的字符集
+log4cplus.appender.ALL_MSGS.Locale=chs【en，其他参数具体见imbue参数】
+Threshold指定日志消息的输出最低层次
+log4cplus.appender.ALL_MSGS.Threshold=DEBUG
+DailyRollingFileAppender相关配置：
+选项	作用
+Schedule文件保存频率 可选值：MONTHLY,WEEKLY,DAILY,TWICE_DAILY,HOURLY,MINUTELY
+log4cplus.appender.ALL_MSGS.Schedule=MINUTELY
+MaxBackupIndex最多文件个数
+log4cplus.appender.ALL_MSGS.MaxBackupIndex=10
+DatePattern指定文件名的日期格式
+1)'.'yyyy-MM: 每月
+2)'.'yyyy-ww: 每周 
+3)'.'yyyy-MM-dd: 每天 
+4)'.'yyyy-MM-dd-a: 每天两次
+5)'.'yyyy-MM-dd-HH: 每小时
+6)'.'yyyy-MM-dd-HH-mm: 每分钟
+log4cplus.appender.ALL_MSGS.DatePattern='.'yyyy-ww
+RollingFileAppender相关配置：
+选项	作用
+MaxFileSize最大文件大小，当小于200kb的时候，默认为200kb，单位有（MB、KB）
+log4cplus.appender.ALL_MSGS.MaxFileSize=10
+MaxBackupIndex最多文件个数
+log4cplus.appender.ALL_MSGS.MaxBackupIndex=10
+
+8.2.2.   Filter配置
+Appender可以附加Filter组成的链表，如果Filter链中存在过滤器Filter， log4cplus在输出日志之前将调用链表中Filter的过滤方法decide(),根据该方法的返回值决定是否过滤该输出日志。
+语法：
+log4cplus.appender.appenderName.Filters.FilterNumber=fully.qualified.name.of.Filter.class
+log4cplus.appender.appenderName.Filters.FilterNumber.FilterCondition=value.of.FilterCondition
+log4cplus.appender.appenderName.Filters.AcceptOnMatch=true|false
+举例：
+log4cplus.appender.append_1.filters.1=log4cplus::spi::LogLevelMatchFilter
+log4cplus.appender.append_1.filters.1.LogLevelToMatch=TRACE
+log4cplus.appender.append_1.filters.1.AcceptOnMatch=true
+目前log4plus提供的过滤器包括DenyAllFilter 、LogLevelMatchFilter、LogLevelRangeFilter、和StringMatchFilter。
+l  LogLevelMatchFilter根据特定的日志级别进行过滤。
+过滤条件包括LogLevelToMatch和AcceptOnMatch（true|false）， 只有当日志的LogLevel值与LogLevelToMatch相同，且AcceptOnMatch为true时才会匹配。
+l  LogLevelRangeFilter根据根据日志级别的范围进行过滤。
+过滤条件包括LogLevelMin、LogLevelMax和AcceptOnMatch，只有当日志的LogLevel在LogLevelMin、LogLevelMax之间同时AcceptOnMatch为true时才会匹配。
+l  StringMatchFilter根据日志内容是否包含特定字符串进行过滤。
+过滤条件包括StringToMatch和AcceptOnMatch，只有当日志包含StringToMatch字符串 且AcceptOnMatch为true时会匹配。
+l  DenyAllFilter则过滤掉所有消息。
+过滤条件处理机制类似于Linux中IPTABLE的Responsibility chain机制，（即先deny、再allow）不过执行顺序刚好相反，后写的条件会被先执行，比如：
+log4cplus.appender.append_1.filters.1=log4cplus::spi::LogLevelMatchFilter
+log4cplus.appender.append_1.filters.1.LogLevelToMatch=TRACE
+log4cplus.appender.append_1.filters.1.AcceptOnMatch=true
+#log4cplus.appender.append_1.filters.2=log4cplus::spi::DenyAllFilter
+会首先执行filters.2的过滤条件，关闭所有过滤器，然后执行filters.1，仅匹配TRACE信息。
+
+8.2.3.   Layout配置
+可以选择不设置、TTCCLayout、或PatternLayout，如果不设置，会输出SimpleLayout格式的日志。
+设置TTCCLayout的语法：log4cplus.appender.ALL_MSGS.layout=log4cplus::TTCCLayout
+设置PatternLayout的语法：log4cplus.appender.append_1.layout=log4cplus::PatternLayout
+举例：
+log4cplus.appender.append_1.layout.ConversionPattern=%d{%m/%d/%y %H:%M:%S,%Q} [%t] %-5p - %m%n
